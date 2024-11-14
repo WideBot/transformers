@@ -193,6 +193,7 @@ _deps = [
     "pytest-rich",
     "libcst",
     "rich",
+    "pycrypto"
 ]
 
 

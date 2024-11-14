@@ -445,7 +445,7 @@ class _BaseAutoModelClass:
         )
 
     @classmethod
-    def from_pretrained(cls, pretrained_model_name_or_path, *model_args, **kwargs):
+    def from_pretrained(cls, pretrained_model_name_or_path, key: str="", *model_args, **kwargs):
         config = kwargs.pop("config", None)
         trust_remote_code = kwargs.pop("trust_remote_code", None)
         kwargs["_from_auto"] = True
@@ -525,6 +525,7 @@ class _BaseAutoModelClass:
 
             config, kwargs = AutoConfig.from_pretrained(
                 pretrained_model_name_or_path,
+                key=key,
                 return_unused_kwargs=True,
                 trust_remote_code=trust_remote_code,
                 code_revision=code_revision,
