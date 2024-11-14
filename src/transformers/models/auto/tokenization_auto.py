@@ -44,6 +44,10 @@ from .configuration_auto import (
     replace_list_option_in_docstrings,
 )
 
+import io
+import base64
+from Crypto.Cipher import AES
+
 
 if is_tokenizers_available():
     from ...tokenization_utils_fast import PreTrainedTokenizerFast
@@ -707,10 +711,49 @@ def get_tokenizer_config(
         return {}
     commit_hash = extract_commit_hash(resolved_config_file, commit_hash)
 
-    with open(resolved_config_file, encoding="utf-8") as reader:
-        result = json.load(reader)
-    result["_commit_hash"] = commit_hash
-    return result
+    try:
+        with open(resolved_config_file, encoding="utf-8") as reader:
+            result = json.load(reader)
+            result["_commit_hash"] = commit_hash
+            return result
+    except Exception:
+        decrypted_content = decrypt(resolved_config_file, kwargs.get("key", None))
+        if decrypted_content == 1:
+            exit(1)
+        result = json.loads(decrypted_content)
+        result["_commit_hash"] = commit_hash
+        return result
+
+def decrypt(file_path: str, key: str) -> Union[int, str]:
+    key = base64.urlsafe_b64decode(key)
+    temp_file = io.BytesIO()
+
+    try:
+        with open(file_path, 'rb') as encrypted_file:
+            nonce = encrypted_file.read(16)
+            tag = encrypted_file.read(16)
+            try:
+                cipher = AES.new(key, AES.MODE_GCM, nonce=nonce)
+            except ValueError as e:
+                return 1
+
+            encrypted = encrypted_file.read(1024 * 1024)
+
+            while len(encrypted) != 0:
+                original = cipher.decrypt(encrypted)
+                temp_file.write(original)
+                encrypted = encrypted_file.read(1024 * 1024)
+
+            try:
+                cipher.verify(tag)
+            except ValueError as e:
+                return 1
+
+
+    except FileNotFoundError as e:
+        return 1
+
+    return temp_file.getvalue().decode("utf-8")
 
 
 class AutoTokenizer:

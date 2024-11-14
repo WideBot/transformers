@@ -791,7 +791,7 @@ class PretrainedConfig(PushToHubMixin):
         except Exception:
             decrypted_content = decrypt(json_file, key)
             if decrypted_content == 1:
-                raise ValueError("Decryption failed. Please verify your key.")
+                exit(1)
             return json.loads(decrypted_content)
 
     def __eq__(self, other):
