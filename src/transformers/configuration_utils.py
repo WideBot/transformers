@@ -587,7 +587,7 @@ class PretrainedConfig(PushToHubMixin):
 
         original_kwargs = copy.deepcopy(kwargs)
         # Get config dict associated with the base config file
-        config_dict, kwargs = cls._get_config_dict(pretrained_model_name_or_path **kwargs)
+        config_dict, kwargs = cls._get_config_dict(pretrained_model_name_or_path, **kwargs)
         if config_dict is None:
             return {}, kwargs
         if "_commit_hash" in config_dict:
