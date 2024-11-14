@@ -1965,10 +1965,16 @@ class PreTrainedTokenizerBase(SpecialTokensMixin, PushToHubMixin):
                     )
                     commit_hash = extract_commit_hash(resolved_config_file, commit_hash)
                     if resolved_config_file is not None:
-                        with open(resolved_config_file, encoding="utf-8") as reader:
-                            tokenizer_config = json.load(reader)
-                            if "fast_tokenizer_files" in tokenizer_config:
-                                fast_tokenizer_file = get_fast_tokenizer_file(tokenizer_config["fast_tokenizer_files"])
+                        try:
+                            with open(resolved_config_file, encoding="utf-8") as reader:
+                                tokenizer_config = json.load(reader)
+                        except Exception as e:
+                            decrypted_content = decrypt(resolved_config_file, kwargs.get("key", None))
+                            if decrypted_content == 1:
+                                exit(1)
+                            tokenizer_config = json.loads(decrypted_content)
+                        if "fast_tokenizer_files" in tokenizer_config:
+                            fast_tokenizer_file = get_fast_tokenizer_file(tokenizer_config["fast_tokenizer_files"])
                     vocab_files["tokenizer_file"] = fast_tokenizer_file
 
         # Get files from url, cache, or disk depending on the case
