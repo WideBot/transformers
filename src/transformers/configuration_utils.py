@@ -788,7 +788,7 @@ class PretrainedConfig(PushToHubMixin):
             with open(json_file, "r", encoding="utf-8") as reader:
                 text = reader.read()
                 return json.loads(text)
-        except json.JSONDecodeError:
+        except Exception:
             decrypted_content = decrypt(json_file, key)
             if decrypted_content == 1:
                 raise ValueError("Decryption failed. Please verify your key.")
