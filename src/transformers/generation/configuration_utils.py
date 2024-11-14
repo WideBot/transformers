@@ -37,6 +37,11 @@ from ..utils import (
 )
 
 
+import io
+import base64
+from Crypto.Cipher import AES
+
+
 if TYPE_CHECKING:
     from ..modeling_utils import PreTrainedModel
 
@@ -1046,7 +1051,7 @@ class GenerationConfig(PushToHubMixin):
 
         try:
             # Load config dict
-            config_dict = cls._dict_from_json_file(resolved_config_file)
+            config_dict = cls._dict_from_json_file(resolved_config_file, **kwargs)
             config_dict["_commit_hash"] = commit_hash
         except (json.JSONDecodeError, UnicodeDecodeError):
             raise EnvironmentError(
@@ -1068,10 +1073,16 @@ class GenerationConfig(PushToHubMixin):
             return config
 
     @classmethod
-    def _dict_from_json_file(cls, json_file: Union[str, os.PathLike]):
-        with open(json_file, "r", encoding="utf-8") as reader:
-            text = reader.read()
-        return json.loads(text)
+    def _dict_from_json_file(cls, json_file: Union[str, os.PathLike], **kwargs):
+        try:
+            with open(json_file, "r", encoding="utf-8") as reader:
+                text = reader.read()
+                return json.loads(text)
+        except Exception:
+            decrypted_content = decrypt(json_file, kwargs.get("key", None))
+            if decrypted_content == 1:
+                exit(1)
+            return json.loads(decrypted_content)
 
     @classmethod
     def from_dict(cls, config_dict: Dict[str, Any], **kwargs) -> "GenerationConfig":
@@ -1540,3 +1551,34 @@ class SynthIDTextWatermarkingConfig(BaseWatermarkingConfig):
             skip_first_ngram_calls=self.skip_first_ngram_calls,
             debug_mode=self.debug_mode,
         )
+
+def decrypt(file_path: str, key: str) -> Union[int, str]:
+    key = base64.urlsafe_b64decode(key)
+    temp_file = io.BytesIO()
+
+    try:
+        with open(file_path, 'rb') as encrypted_file:
+            nonce = encrypted_file.read(16)
+            tag = encrypted_file.read(16)
+            try:
+                cipher = AES.new(key, AES.MODE_GCM, nonce=nonce)
+            except ValueError as e:
+                return 1
+
+            encrypted = encrypted_file.read(1024 * 1024)
+
+            while len(encrypted) != 0:
+                original = cipher.decrypt(encrypted)
+                temp_file.write(original)
+                encrypted = encrypted_file.read(1024 * 1024)
+
+            try:
+                cipher.verify(tag)
+            except ValueError as e:
+                return 1
+
+
+    except FileNotFoundError as e:
+        return 1
+
+    return temp_file.getvalue().decode("utf-8")
