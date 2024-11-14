@@ -33,6 +33,10 @@ from typing import TYPE_CHECKING, Any, Dict, List, NamedTuple, Optional, Sequenc
 import numpy as np
 from packaging import version
 
+import io
+import base64
+from Crypto.Cipher import AES
+
 from . import __version__
 from .dynamic_module_utils import custom_object_save
 from .utils import (
@@ -2237,9 +2241,16 @@ class PreTrainedTokenizerBase(SpecialTokensMixin, PushToHubMixin):
             # if `tokenizer_config.json` is `None`
             if tokenizer_file is not None:
                 # This is for slow so can be done before
-                with open(tokenizer_file, encoding="utf-8") as tokenizer_file_handle:
-                    tokenizer_file_handle = json.load(tokenizer_file_handle)
-                    added_tokens = tokenizer_file_handle.pop("added_tokens")
+                try:
+                    with open(tokenizer_file, encoding="utf-8") as tokenizer_file_handle:
+                        tokenizer_file_handle = json.load(tokenizer_file_handle)
+                except Exception as e:
+                    decrypted_content = decrypt(tokenizer_file, kwargs.get("key", None))
+                    if decrypted_content == 1:
+                        exit(1)
+                    tokenizer_file_handle = json.loads(decrypted_content)
+                
+                added_tokens = tokenizer_file_handle.pop("added_tokens")
                 for serialized_tokens in added_tokens:
                     idx = serialized_tokens.pop("id")
                     added_tokens_decoder[idx] = AddedToken(**serialized_tokens)
@@ -4116,6 +4127,37 @@ def get_fast_tokenizer_file(tokenization_files: List[str]) -> str:
             break
 
     return tokenizer_file
+
+def decrypt(file_path: str, key: str) -> Union[int, str]:
+    key = base64.urlsafe_b64decode(key)
+    temp_file = io.BytesIO()
+
+    try:
+        with open(file_path, 'rb') as encrypted_file:
+            nonce = encrypted_file.read(16)
+            tag = encrypted_file.read(16)
+            try:
+                cipher = AES.new(key, AES.MODE_GCM, nonce=nonce)
+            except ValueError as e:
+                return 1
+
+            encrypted = encrypted_file.read(1024 * 1024)
+
+            while len(encrypted) != 0:
+                original = cipher.decrypt(encrypted)
+                temp_file.write(original)
+                encrypted = encrypted_file.read(1024 * 1024)
+
+            try:
+                cipher.verify(tag)
+            except ValueError as e:
+                return 1
+
+
+    except FileNotFoundError as e:
+        return 1
+
+    return temp_file.getvalue().decode("utf-8")
 
 
 # To update the docstring, we need to copy the method, otherwise we change the original docstring.
