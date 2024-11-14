@@ -915,7 +915,7 @@ class AutoConfig:
 
     @classmethod
     @replace_list_option_in_docstrings()
-    def from_pretrained(cls, pretrained_model_name_or_path, key="", **kwargs):
+    def from_pretrained(cls, pretrained_model_name_or_path, **kwargs):
         r"""
         Instantiate one of the configuration classes of the library from a pretrained model configuration.
 
@@ -1014,7 +1014,7 @@ class AutoConfig:
         trust_remote_code = kwargs.pop("trust_remote_code", None)
         code_revision = kwargs.pop("code_revision", None)
 
-        config_dict, unused_kwargs = PretrainedConfig.get_config_dict(pretrained_model_name_or_path, key=key, **kwargs)
+        config_dict, unused_kwargs = PretrainedConfig.get_config_dict(pretrained_model_name_or_path, **kwargs)
         has_remote_code = "auto_map" in config_dict and "AutoConfig" in config_dict["auto_map"]
         has_local_code = "model_type" in config_dict and config_dict["model_type"] in CONFIG_MAPPING
         trust_remote_code = resolve_trust_remote_code(

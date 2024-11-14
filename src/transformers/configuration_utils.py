@@ -569,7 +569,7 @@ class PretrainedConfig(PushToHubMixin):
 
     @classmethod
     def get_config_dict(
-        cls, pretrained_model_name_or_path: Union[str, os.PathLike], key: str = "", **kwargs
+        cls, pretrained_model_name_or_path: Union[str, os.PathLike], **kwargs
     ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """
         From a `pretrained_model_name_or_path`, resolve to a dictionary of parameters, to be used for instantiating a
@@ -587,7 +587,7 @@ class PretrainedConfig(PushToHubMixin):
 
         original_kwargs = copy.deepcopy(kwargs)
         # Get config dict associated with the base config file
-        config_dict, kwargs = cls._get_config_dict(pretrained_model_name_or_path, key=key **kwargs)
+        config_dict, kwargs = cls._get_config_dict(pretrained_model_name_or_path **kwargs)
         if config_dict is None:
             return {}, kwargs
         if "_commit_hash" in config_dict:
@@ -604,7 +604,7 @@ class PretrainedConfig(PushToHubMixin):
 
     @classmethod
     def _get_config_dict(
-        cls, pretrained_model_name_or_path: Union[str, os.PathLike], key: str="", **kwargs
+        cls, pretrained_model_name_or_path: Union[str, os.PathLike], **kwargs
     ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         cache_dir = kwargs.pop("cache_dir", None)
         force_download = kwargs.pop("force_download", False)
@@ -618,6 +618,7 @@ class PretrainedConfig(PushToHubMixin):
         from_pipeline = kwargs.pop("_from_pipeline", None)
         from_auto_class = kwargs.pop("_from_auto", False)
         commit_hash = kwargs.pop("_commit_hash", None)
+        key = kwargs.pop("key", None)
 
         gguf_file = kwargs.get("gguf_file", None)
 
