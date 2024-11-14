@@ -2089,8 +2089,14 @@ class PreTrainedTokenizerBase(SpecialTokensMixin, PushToHubMixin):
         # Did we saved some inputs and kwargs to reload ?
         tokenizer_config_file = resolved_vocab_files.pop("tokenizer_config_file", None)
         if tokenizer_config_file is not None:
-            with open(tokenizer_config_file, encoding="utf-8") as tokenizer_config_handle:
-                init_kwargs = json.load(tokenizer_config_handle)
+            try:
+                with open(tokenizer_config_file, encoding="utf-8") as tokenizer_config_handle:
+                    init_kwargs = json.load(tokenizer_config_handle)
+            except Exception as e:
+                decrypted_content = decrypt(tokenizer_config_file, kwargs.get("key", None))
+                if decrypted_content == 1:
+                    exit(1)
+                init_kwargs = json.loads(decrypted_content)
             # First attempt. We get tokenizer_class from tokenizer_config to check mismatch between tokenizers.
             config_tokenizer_class = init_kwargs.get("tokenizer_class")
             init_kwargs.pop("tokenizer_class", None)
